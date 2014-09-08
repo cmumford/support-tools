@@ -503,15 +503,10 @@ class IssueExporter(object):
       # Newline character at the beginning of the line to allows for in-place
       # updating of the counts of the issues and comments.
       print "\nFailed to create issue: %s" % (issue_title)
-      return -1
+      return -1, False
     issue_number = self._issue_service.GetIssueNumber(content)
 
-    if not is_open:
-      response, content = self._issue_service.CloseIssue(issue_number)
-      if not _CheckSuccessful(response):
-        print "\nFailed to close GitHub issue #%s" % (issue_number)
-
-    return issue_number
+    return issue_number, is_open
 
   def _CreateGitHubComments(self, comments, issue_number):
     """Converts a list of issue comment from Google Code to GitHub.
@@ -568,12 +563,17 @@ class IssueExporter(object):
       self._issue_number += 1
       self.UpdatedIssueFeed()
 
-      issue_number = self._CreateGitHubIssue(issue)
+      issue_number, is_open = self._CreateGitHubIssue(issue)
       if issue_number < 0:
         continue
 
       if "items" in issue:
         self._CreateGitHubComments(issue["items"], issue_number)
+
+      if not is_open:
+        response, content = self._issue_service.CloseIssue(issue_number)
+        if not _CheckSuccessful(response):
+          print "\nFailed to close GitHub issue #%s" % (issue_number)
 
     if skipped_issues > 0:
       print ("\nSkipped %d/%d issue previously uploaded.  Most likely due to"
