@@ -559,6 +559,12 @@ class IssueExporter(object):
 
       issue["assignee"] = self._GetIssueAssignee(issue)
 
+      # code.google.com always has one comment (item #0) which is the issue
+      # description.
+      first_item = issue["items"].pop(0)
+
+      issue["body"] = first_item["content"]
+
       self._issue_number += 1
       self.UpdatedIssueFeed()
 
