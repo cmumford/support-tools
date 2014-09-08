@@ -427,6 +427,8 @@ class IssueExporter(object):
 
     user_map_list = self._assignee_data.split("\n")
     for line in filter(None, user_map_list):
+      if line.startswith('#'):
+        continue
       user_map = line.split(":")
       if len(user_map) is 2:
         username = user_map[1].strip()
