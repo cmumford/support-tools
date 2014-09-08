@@ -346,6 +346,8 @@ class GitHubIssueService(object):
       its content from the server which is decoded JSON.
     """
     comment_url = "%s/%d/comments" % (self._github_issues_url, issue_number)
+    if comment == '':
+      comment = '&lt;empty&gt;'
     json_body = json.dumps({"body": comment})
     return self._github_service.PerformPostRequest(comment_url, json_body)
 
