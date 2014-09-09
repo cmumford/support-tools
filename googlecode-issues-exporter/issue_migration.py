@@ -46,6 +46,7 @@
 
 import argparse
 import json
+import re
 import sys
 import time
 import urllib
@@ -348,6 +349,9 @@ class GitHubIssueService(object):
     comment_url = "%s/%d/comments" % (self._github_issues_url, issue_number)
     if comment == '':
       comment = '&lt;empty&gt;'
+    else:
+      comment = IssueExporter.fixupComment(comment)
+    comment = "Originally posted by %s on %s:\n\n%s" % (author, comment_date, comment)
     json_body = json.dumps({"body": comment})
     return self._github_service.PerformPostRequest(comment_url, json_body)
 
@@ -530,6 +534,26 @@ class IssueExporter(object):
       if not _CheckSuccessful(response):
         print ("\nFailed to create issue comment (%s) for GitHub issue #%d"
                % (comment["content"], issue_number))
+
+  @staticmethod
+  def fixupComment(comment):
+    formatted = []
+    preformat_rest_of_comment = False
+    for line in comment.split("\n"):
+      if re.match(r'^#+ ', line) or re.match(r'^Index: ', line):
+        preformat_rest_of_comment = True
+      elif '--- cut here ---' in line:
+        preformat_rest_of_comment = True
+      if preformat_rest_of_comment:
+        formatted.append("    %s" % line)
+      else:
+        # "#3" style commends get converted into links to issue #3, etc.
+        # We don't want this. There's no way to escape this so put a non
+        # breaking space to prevent.
+        line = re.sub("#(\d+)", "#&nbsp;\g<1>", line)
+        formatted.append(line)
+
+    return '\n'.join(formatted)
 
   def Start(self):
     """The primary function that runs this script.
