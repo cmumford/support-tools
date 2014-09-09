@@ -335,7 +335,8 @@ class GitHubIssueService(object):
     json_state = json.dumps({"state": "closed"})
     return self._github_service.PerformPatchRequest(issue_url, json_state)
 
-  def CreateComment(self, issue_number, comment):
+  def CreateComment(self, issue_number, issue_id, comment, author, comment_date,
+                    comment_id, project_name):
     """Creates a comment on a GitHub issue.
 
     Args:
@@ -351,7 +352,12 @@ class GitHubIssueService(object):
       comment = '&lt;empty&gt;'
     else:
       comment = IssueExporter.fixupComment(comment)
-    comment = "Originally posted by %s on %s:\n\n%s" % (author, comment_date, comment)
+
+    orig_comment_url = "https://code.google.com/p/%s/issues/detail?id=%s#c%s" % \
+        (project_name, issue_id, comment_id)
+
+    comment = "Comment [#%s](%s) originally posted by %s on %s:\n\n%s" % \
+        (comment_id, orig_comment_url, author, comment_date, comment)
     json_body = json.dumps({"body": comment})
     return self._github_service.PerformPostRequest(comment_url, json_body)
 
@@ -514,7 +520,7 @@ class IssueExporter(object):
 
     return issue_number, is_open
 
-  def _CreateGitHubComments(self, comments, issue_number):
+  def _CreateGitHubComments(self, comments, issue_number, issue_id):
     """Converts a list of issue comment from Google Code to GitHub.
 
     This will take a list of Google Code issue comments and create
@@ -531,7 +537,12 @@ class IssueExporter(object):
       self._comment_number += 1
       self.UpdatedIssueFeed()
       response, _ = self._issue_service.CreateComment(issue_number,
-                                                      comment["content"])
+                                                      issue_id,
+                                                      comment["content"],
+                                                      comment["author"]["name"],
+                                                      comment["published"],
+                                                      comment["id"],
+                                                      self._project_name)
 
       if not _CheckSuccessful(response):
         print ("\nFailed to create issue comment (%s) for GitHub issue #%d"
@@ -584,7 +595,15 @@ class IssueExporter(object):
       # description.
       first_item = issue["items"].pop(0)
 
-      issue["body"] = first_item["content"]
+      content = IssueExporter.fixupComment(first_item["content"])
+      author = first_item["author"]["name"]
+      create_date = first_item["published"]
+      issue_id = issue["id"]
+      url = "https://code.google.com/p/%s/issues/detail?id=%s" % \
+          (self._project_name, issue_id)
+      body = "Original [issue %s](%s) created by %s on %s:\n\n%s" % \
+          (issue_id, url, author, create_date, content)
+      issue["body"] = body
 
       self._issue_number += 1
       self.UpdatedIssueFeed()
@@ -594,7 +613,7 @@ class IssueExporter(object):
         continue
 
       if "items" in issue:
-        self._CreateGitHubComments(issue["items"], issue_number)
+        self._CreateGitHubComments(issue["items"], issue_number, issue_id)
 
       if not is_open:
         response, content = self._issue_service.CloseIssue(issue_number)
