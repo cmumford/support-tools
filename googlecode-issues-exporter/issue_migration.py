@@ -61,6 +61,10 @@ MAX_HTTP_REQUESTS = 3
 # The time (in seconds) to wait before trying to see if more requests are
 # available.
 REQUEST_CHECK_TIME = 60 * 5
+# A real kludge. GitHub orders the comments based on time alone, and because
+# we upload ours relatively quickly we need at least a second in between
+# comments to keep them in chronological order.
+COMMENT_DELAY = 2
 
 
 class Error(Exception):
@@ -547,6 +551,7 @@ class IssueExporter(object):
       if not _CheckSuccessful(response):
         print ("\nFailed to create issue comment (%s) for GitHub issue #%d"
                % (comment["content"], issue_number))
+      time.sleep(COMMENT_DELAY)
 
   @staticmethod
   def fixupComment(comment):
