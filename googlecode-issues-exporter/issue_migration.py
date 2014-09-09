@@ -385,7 +385,8 @@ class IssueExporter(object):
   Handles the uploading issues from Google Code to GitHub.
   """
 
-  def __init__(self, github_service, issue_json_data, assignee_data=None):
+  def __init__(self, github_service, issue_json_data, project_name,
+               assignee_data=None):
     """Initialize the IssueExporter.
 
     Args:
@@ -403,6 +404,7 @@ class IssueExporter(object):
     self._user_service = None
     self._previously_created_issues = set()
     self._assignee_map = {}
+    self._project_name = project_name
 
     self._issue_total = 0
     self._issue_number = 0
@@ -658,9 +660,12 @@ def main(args):
   if parsed_args.assignee_file_path:
     assignee_data = open(parsed_args.assignee_file_path)
     issue_exporter = IssueExporter(github_service, issue_data,
+                                   parsed_args.project_name,
                                    assignee_data.read())
   else:
-    issue_exporter = IssueExporter(github_service, issue_data)
+    issue_exporter = IssueExporter(github_service,
+                                   parsed_args.project_name,
+                                   issue_data)
 
   try:
     issue_exporter.Init()
