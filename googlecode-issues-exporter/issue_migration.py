@@ -281,9 +281,15 @@ class GitHubIssueService(object):
       github_service: The GitHub service.
     """
     self._github_service = github_service
-    self._github_issues_url = ("/repos/%s/%s/issues" %
-                               (self._github_service.github_owner_username,
-                                self._github_service.github_repo_name))
+    # If the repo if of the form "login/reponame" then don't inject the username
+    # as it (or the organization) is already embedded.
+    if '/' in self._github_service.github_repo_name:
+      self._github_issues_url = "/repos/%s/issues" % \
+          self._github_service.github_repo_name
+    else:
+      self._github_issues_url = ("/repos/%s/%s/issues" %
+                                 (self._github_service.github_owner_username,
+                                  self._github_service.github_repo_name))
 
   def GetIssues(self, state="open"):
     """Gets all of the issue for the GitHub repository.
